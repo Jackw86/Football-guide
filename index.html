@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0a0f0d"><title>Football Guide</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚽</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+/* ===== DESIGN SYSTEM ===== */
+:root{
+--bg:#0a0f0d;--bg2:#111916;--bg3:#1a2420;--bg4:#223029;
+--card:#162019;--card-border:rgba(34,163,74,.12);
+--green:#22c55e;--green-dim:#16a34a;--green-glow:rgba(34,197,94,.15);
+--gold:#fbbf24;--red:#ef4444;--blue:#3b82f6;--purple:#8b5cf6;--cyan:#06b6d4;
+--text:#f0fdf4;--text2:#a7c4b8;--text3:#5a7a6c;
+--r:16px;--r2:12px;--r3:8px;
+--font:'Inter',system-ui,-apple-system,sans-serif;
+--shadow:0 4px 24px rgba(0,0,0,.4);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:var(--bg)}
+body{font-family:var(--font);color:var(--text);-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
+#app{height:100dvh;display:flex;flex-direction:column;overflow:hidden;position:relative}
+
+/* ===== ANIMATIONS ===== */
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideL{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:translateX(0)}}
+@keyframes slideR{from{opacity:0;transform:translateX(-40px)}to{opacity:1;transform:translateX(0)}}
+@keyframes slideUp{from{opacity:0;transform:translateY(100%)}to{opacity:1;transform:translateY(0)}}
+@keyframes pop{0%{transform:scale(0) rotate(-8deg)}60%{transform:scale(1.1) rotate(2deg)}100%{transform:scale(1) rotate(0)}}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+@keyframes shimmer{0%{background-position:-200% center}100%{background-position:200% center}}
+@keyframes confF{0%{transform:translateY(-10px) rotate(0);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}
+@keyframes goalFlash{0%,100%{opacity:0}50%{opacity:1}}
+@keyframes xpFloat{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-40px)}}
+@keyframes ringFill{from{stroke-dasharray:0 999}to{stroke-dasharray:var(--fill) 999}}
+@keyframes barFill{from{width:0}to{width:var(--w)}}
+
+/* ===== PITCH BACKGROUND ===== */
+.pitch-bg{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none}
+.pitch-bg::before{content:'';position:absolute;top:50%;left:50%;width:200px;height:200px;border:1px solid rgba(34,197,94,.04);border-radius:50%;transform:translate(-50%,-50%)}
+.pitch-bg::after{content:'';position:absolute;top:50%;left:0;right:0;height:1px;background:rgba(34,197,94,.03)}
+
+/* ===== SCROLL AREA ===== */
+.scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;position:relative;z-index:1}
+.scroll::-webkit-scrollbar{width:0}
+.pad{padding:16px 16px 90px}
+
+/* ===== BOTTOM TAB BAR ===== */
+.tabbar{position:absolute;bottom:0;left:0;right:0;display:flex;background:rgba(10,15,13,.92);backdrop-filter:blur(20px);border-top:1px solid rgba(34,197,94,.08);padding:6px 8px 10px;z-index:20;gap:0}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;padding:4px 0;border:none;background:none;color:var(--text3);transition:all .2s;font-family:var(--font)}
+.tab.on{color:var(--green)}
+.tab .ti{font-size:18px;line-height:1}.tab .tl{font-size:9px;font-weight:600}
+.tab:active{transform:scale(.9)}
+
+/* ===== CARDS ===== */
+.card{background:var(--card);border:1px solid var(--card-border);border-radius:var(--r);padding:16px;margin-bottom:12px;box-shadow:var(--shadow);animation:fadeUp .3s ease both}
+.card-glow{box-shadow:var(--shadow),0 0 30px var(--green-glow)}
+
+/* ===== NAME SCREEN ===== */
+.name-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:24px;text-align:center;background:var(--bg);position:relative;z-index:1}
+.name-screen .logo{font-size:64px;margin-bottom:16px;animation:float 3s ease-in-out infinite}
+.name-screen h1{font-size:28px;font-weight:900;color:var(--green);letter-spacing:-.5px}
+.name-screen p{font-size:13px;color:var(--text2);margin:8px 0 20px;max-width:280px;line-height:1.5}
+.name-screen input{background:var(--bg3);border:2px solid var(--green-dim);border-radius:var(--r2);padding:14px 18px;font-size:16px;font-family:var(--font);font-weight:700;color:var(--text);text-align:center;width:85%;max-width:300px;outline:none;transition:border-color .2s}
+.name-screen input:focus{border-color:var(--green)}
+.name-screen input::placeholder{color:var(--text3)}
+.name-screen button{background:var(--green);color:#0a0f0d;border:none;border-radius:var(--r2);padding:14px 28px;font-family:var(--font);font-weight:800;font-size:15px;cursor:pointer;margin-top:16px;width:85%;max-width:300px;transition:all .15s}
+.name-screen button:active{transform:scale(.97);opacity:.9}
+
+/* ===== HOME SCREEN ===== */
+.home-hero{text-align:center;padding:20px 0 12px}
+.home-hero .greeting{font-size:14px;color:var(--text2);font-weight:600}
+.home-hero .name{font-size:26px;font-weight:900;color:var(--text);margin-top:2px}
+.xp-bar-wrap{margin:16px 0 8px;display:flex;align-items:center;gap:10px}
+.xp-ring{position:relative;width:52px;height:52px;flex-shrink:0}
+.xp-ring svg{width:52px;height:52px;transform:rotate(-90deg)}
+.xp-ring .lvl{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:16px;color:var(--green)}
+.xp-info{flex:1}
+.xp-info .level{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px}
+.xp-bar{height:6px;background:var(--bg4);border-radius:3px;overflow:hidden;margin-top:4px}
+.xp-bar-fill{height:100%;background:linear-gradient(90deg,var(--green-dim),var(--green));border-radius:3px;transition:width .6s ease}
+.xp-info .xp-text{font-size:10px;color:var(--text3);margin-top:3px;font-weight:600}
+
+/* STATS ROW */
+.stats-row{display:flex;gap:8px;margin-bottom:14px}
+.stat{flex:1;background:var(--bg3);border-radius:var(--r2);padding:10px;text-align:center;border:1px solid rgba(34,197,94,.06)}
+.stat .sv{font-size:20px;font-weight:900;color:var(--text)}.stat .sl{font-size:9px;font-weight:600;color:var(--text3);margin-top:2px}
+
+/* STREAK */
+.streak-card{background:linear-gradient(135deg,#1a0a00,#2a1500);border:1px solid rgba(251,191,36,.15);border-radius:var(--r);padding:14px;display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.streak-fire{font-size:32px;animation:float 2s ease-in-out infinite}.streak-info .sn{font-size:24px;font-weight:900;color:var(--gold)}.streak-info .st{font-size:10px;color:#a17a20;font-weight:600}
+.streak-btn{margin-left:auto;background:var(--gold);color:#1a0a00;border:none;border-radius:var(--r3);padding:8px 14px;font-family:var(--font);font-weight:800;font-size:11px;cursor:pointer}
+.streak-btn:active{transform:scale(.95)}.streak-btn.done{background:var(--bg4);color:var(--text3)}
+
+/* DAILY TIP */
+.tip-card{background:linear-gradient(135deg,var(--bg3),var(--bg2));border:1px solid rgba(34,197,94,.1);border-radius:var(--r);padding:12px 14px;margin-bottom:14px}
+.tip-card .tip-lb{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--green);margin-bottom:4px}
+.tip-card .tip-tx{font-size:12px;font-weight:600;color:var(--text2);line-height:1.5}
+
+/* CATEGORY CARDS */
+.cat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.cat-card{background:var(--card);border:1px solid var(--card-border);border-radius:var(--r);padding:16px 12px;cursor:pointer;position:relative;overflow:hidden;transition:all .15s}
+.cat-card:active{transform:scale(.97)}
+.cat-card .cat-icon{font-size:28px;margin-bottom:6px}
+.cat-card .cat-name{font-size:12px;font-weight:800;color:var(--text)}
+.cat-card .cat-prog{font-size:10px;font-weight:600;color:var(--text3);margin-top:2px}
+.cat-card .cat-bar{height:3px;background:var(--bg4);border-radius:2px;margin-top:6px;overflow:hidden}
+.cat-card .cat-bar-fill{height:100%;border-radius:2px;transition:width .5s}
+
+/* GAME CARDS */
+.game-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.game-card{background:var(--card);border:1px solid var(--card-border);border-radius:var(--r);padding:14px 10px;text-align:center;cursor:pointer;transition:all .15s}
+.game-card:active{transform:scale(.96)}
+.game-card .em{font-size:24px;margin-bottom:4px}.game-card .nm{font-size:11px;font-weight:800;color:var(--text)}.game-card .ds{font-size:9px;color:var(--text3);font-weight:600;margin-top:2px}
+
+/* ===== CHAPTER LIST (LEARN TAB) ===== */
+.cat-header{display:flex;align-items:center;gap:8px;padding:12px 0 6px}
+.cat-header .ch{font-size:15px;font-weight:800;color:var(--text)}.cat-header .ci{font-size:16px}
+.ch-item{display:flex;align-items:center;gap:12px;padding:12px;background:var(--card);border:1px solid var(--card-border);border-radius:var(--r2);margin-bottom:6px;cursor:pointer;transition:all .15s}
+.ch-item:active{transform:scale(.98)}
+.ch-item.locked{opacity:.35;pointer-events:none}
+.ch-ring{position:relative;width:40px;height:40px;flex-shrink:0}
+.ch-ring svg{width:40px;height:40px;transform:rotate(-90deg)}
+.ch-ring .ch-icon{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:16px}
+.ch-info{flex:1;min-width:0}
+.ch-info .ch-title{font-size:12px;font-weight:800;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ch-info .ch-sub{font-size:10px;color:var(--text3);font-weight:600}
+.ch-pass{font-size:16px}
+
+/* ===== CHAPTER VIEW ===== */
+.ch-head{border-radius:var(--r);padding:20px;margin-bottom:14px;color:#fff;position:relative;overflow:hidden}
+.ch-head .bg{position:absolute;top:-10px;right:-10px;font-size:56px;opacity:.1;transform:rotate(12deg)}
+.ch-head .n{font-size:9px;font-weight:700;opacity:.6;text-transform:uppercase;letter-spacing:2px;margin-bottom:4px}
+.ch-head .t{font-size:20px;font-weight:900;line-height:1.2;margin-bottom:2px}.ch-head .s{font-size:11px;opacity:.8;font-weight:600}
+.ch-xp{display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,.15);border-radius:20px;padding:3px 10px;font-size:10px;font-weight:700;margin-top:8px}
+.intro-card{font-size:13px;line-height:1.7;font-weight:600;color:var(--text2);border-left:3px solid;padding-left:14px}
+.body-text{font-size:12px;line-height:1.7;font-weight:500;color:var(--text2);margin-bottom:3px}
+.body-text b{color:var(--text);font-weight:800}
+.trigger-card{background:linear-gradient(135deg,rgba(251,191,36,.08),rgba(251,191,36,.03));border:1px solid rgba(251,191,36,.15);border-radius:var(--r2);padding:12px;margin-bottom:10px}
+.trigger-card .lb{font-size:8px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px}
+.trigger-card .tx{font-size:11px;font-weight:700;color:#d4a017;line-height:1.4}
+
+/* CHECKLIST */
+.check-item{display:flex;align-items:flex-start;gap:8px;padding:8px;border-radius:var(--r3);cursor:pointer;margin-bottom:2px;transition:background .15s}
+.check-item:active{transform:scale(.98)}
+.check-box{width:20px;height:20px;border-radius:6px;flex-shrink:0;border:2px solid;display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:900;margin-top:1px;transition:all .2s}
+.check-txt{font-size:11px;font-weight:600;color:var(--text2);line-height:1.4}.check-txt.dn{color:var(--text3);text-decoration:line-through}
+
+/* ===== QUIZ (Premium Feel) ===== */
+.quiz-wrap{border-radius:var(--r);padding:16px;margin-bottom:12px;border:2px solid;background:var(--bg2)}
+.quiz-title{font-size:15px;font-weight:900;text-align:center;margin-bottom:2px}
+.quiz-sub{font-size:10px;font-weight:600;color:var(--text3);text-align:center;margin-bottom:12px}
+.quiz-progress{display:flex;gap:3px;margin-bottom:14px}
+.quiz-dot{flex:1;height:4px;border-radius:2px;background:var(--bg4)}
+.quiz-dot.ok{background:var(--green)}.quiz-dot.no{background:var(--red)}.quiz-dot.cur{background:var(--text3)}
+.q-num{font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+.q-text{font-size:15px;font-weight:800;color:var(--text);line-height:1.4;margin-bottom:12px}
+.q-btn{cursor:pointer;border:2px solid var(--bg4);border-radius:var(--r2);padding:14px 16px;margin-bottom:8px;font-size:13px;font-weight:700;color:var(--text);background:var(--bg3);transition:all .15s;display:flex;align-items:center;gap:10px}
+.q-btn:active{transform:scale(.98)}
+.q-btn .q-letter{width:28px;height:28px;border-radius:50%;background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:var(--text2);flex-shrink:0}
+.q-btn.ok{border-color:var(--green);background:rgba(34,197,94,.1);pointer-events:none}.q-btn.ok .q-letter{background:var(--green);color:#0a0f0d}
+.q-btn.no{border-color:var(--red);background:rgba(239,68,68,.08);pointer-events:none}.q-btn.no .q-letter{background:var(--red);color:#fff}
+.q-btn.ds{pointer-events:none;opacity:.3}
+.q-feedback{border-radius:var(--r3);padding:10px 12px;margin:-4px 0 10px;font-size:11px;font-weight:700;line-height:1.4;animation:fadeUp .2s}
+.q-feedback.ok{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.2);color:#4ade80}
+.q-feedback.no{background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.15);color:#f87171}
+.typebox{margin:8px 0;display:flex;gap:6px}
+.typebox input{flex:1;background:var(--bg3);border:2px solid var(--red);border-radius:var(--r3);padding:10px;font-family:var(--font);font-size:12px;font-weight:600;color:var(--text);outline:none}
+.typebox input:focus{border-color:var(--gold)}
+.typebox button{background:var(--green);color:#0a0f0d;border:none;border-radius:var(--r3);padding:10px 14px;font-family:var(--font);font-weight:800;font-size:11px;cursor:pointer}
+.quiz-result{text-align:center;padding:16px 0;animation:pop .5s}
+.quiz-result .score{font-size:48px;font-weight:900;margin-bottom:4px}.quiz-result .msg{font-size:14px;font-weight:700;margin-bottom:12px}
+
+/* DEEP LEARNING */
+.deep-card{border-radius:var(--r);padding:14px;margin-bottom:10px;border:1.5px solid rgba(139,92,246,.2);background:rgba(139,92,246,.05)}
+.deep-card .dtl{font-size:12px;font-weight:800;color:var(--purple);margin-bottom:8px}
+.deep-card .dq{font-size:11px;font-weight:700;color:#c4b5fd;margin-bottom:4px;line-height:1.4}
+.deep-card textarea{width:100%;background:var(--bg3);border:1.5px solid rgba(139,92,246,.2);border-radius:var(--r3);padding:8px;font-family:var(--font);font-size:11px;font-weight:500;color:var(--text);min-height:60px;resize:vertical;outline:none}
+.deep-card textarea:focus{border-color:var(--purple)}
+.deep-card .save-btn{border:none;background:var(--purple);color:#fff;border-radius:var(--r3);padding:5px 12px;font-size:10px;font-weight:700;cursor:pointer;font-family:var(--font);margin-top:4px}
+
+/* ===== BOTTOM CHAPTER NAV ===== */
+.ch-nav{position:absolute;bottom:0;left:0;right:0;padding:8px 16px 14px;display:flex;align-items:center;justify-content:space-between;background:linear-gradient(to top,rgba(10,15,13,.98) 60%,transparent);z-index:10}
+.nav-btn{cursor:pointer;border:none;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900;color:#fff;transition:all .15s}
+.nav-btn:active{transform:scale(.9)}.nav-btn:disabled{opacity:.2}
+.nav-dots{display:flex;gap:3px;align-items:center;flex-wrap:wrap;justify-content:center;max-width:50%}
+.nav-dot{height:4px;border-radius:2px;border:none;cursor:pointer;transition:all .3s}
+
+/* ===== PENALTY GAME ===== */
+.pen-field{position:relative;width:100%;height:260px;background:linear-gradient(180deg,#1a3a2a 0%,#16a34a 30%,#22c55e 60%,#16a34a 100%);border-radius:var(--r);overflow:hidden;margin-bottom:12px}
+.pen-goal{position:absolute;top:15px;left:12%;width:76%;height:90px;border:3px solid rgba(255,255,255,.8);border-bottom:none;background:repeating-linear-gradient(90deg,transparent,transparent 12px,rgba(255,255,255,.06) 12px,rgba(255,255,255,.06) 13px),repeating-linear-gradient(0deg,transparent,transparent 12px,rgba(255,255,255,.06) 12px,rgba(255,255,255,.06) 13px)}
+.pen-zone{position:absolute;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:rgba(255,255,255,.3);transition:all .15s;border:1px solid rgba(255,255,255,.08)}
+.pen-zone:active{background:rgba(255,255,255,.15)}
+.pen-zone.scored{background:rgba(34,197,94,.5);border-color:var(--green);color:#fff}
+.pen-zone.saved{background:rgba(239,68,68,.4);border-color:var(--red);color:#fff}
+.pen-ball{position:absolute;bottom:40px;left:50%;transform:translateX(-50%);font-size:28px}
+.pen-score{position:absolute;top:8px;left:50%;transform:translateX(-50%);font-size:12px;font-weight:800;color:#fff;background:rgba(0,0,0,.4);padding:3px 10px;border-radius:20px}
+
+/* ===== OFFSIDE GAME ===== */
+.off-pitch{position:relative;width:100%;height:220px;background:repeating-linear-gradient(0deg,#16a34a 0px,#16a34a 44px,#15803d 44px,#15803d 88px);border-radius:var(--r);overflow:hidden;margin-bottom:10px;border:2px solid rgba(255,255,255,.1)}
+.off-line{position:absolute;left:0;right:0;border-top:2px dashed rgba(255,255,255,.35)}
+.off-player{position:absolute;display:flex;flex-direction:column;align-items:center;font-size:9px;font-weight:700;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.5)}
+.off-player .shirt{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;border:2px solid rgba(255,255,255,.3)}
+.off-btns{display:flex;gap:10px}
+.off-btn{flex:1;border:2px solid;border-radius:var(--r2);padding:14px;font-family:var(--font);font-weight:800;font-size:14px;cursor:pointer;text-align:center;transition:all .15s}
+.off-btn:active{transform:scale(.97)}
+
+/* ===== CONFETTI ===== */
+.conf{position:fixed;width:8px;height:8px;top:-10px;z-index:200;border-radius:2px;animation:confF 2.5s ease-out forwards;pointer-events:none}
+
+/* ===== XP POPUP ===== */
+.xp-pop{position:fixed;z-index:100;font-weight:900;font-size:16px;color:var(--green);animation:xpFloat 1.2s ease-out forwards;pointer-events:none}
+
+/* ===== OVERLAY NAV ===== */
+.overlay{position:absolute;inset:0;z-index:50}
+.overlay-bg{position:absolute;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(4px)}
+.overlay-panel{position:relative;z-index:1;background:var(--bg2);border-radius:0 0 20px 20px;max-height:85dvh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.5);animation:slideUp .25s ease}
+
+/* ===== MISC ===== */
+.btn-primary{background:var(--green);color:#0a0f0d;border:none;border-radius:var(--r2);padding:12px 20px;font-family:var(--font);font-weight:800;font-size:13px;cursor:pointer;width:100%;transition:all .15s}
+.btn-primary:active{transform:scale(.97);opacity:.9}
+.btn-secondary{background:var(--bg3);color:var(--text);border:1.5px solid var(--card-border);border-radius:var(--r2);padding:10px 16px;font-family:var(--font);font-weight:700;font-size:12px;cursor:pointer;transition:all .15s}
+.btn-secondary:active{transform:scale(.97)}
+.section-title{font-size:13px;font-weight:800;color:var(--text);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.footer{text-align:center;padding:16px 0 0;font-size:9px;color:var(--text3);font-weight:600;line-height:1.6}
+.footer a{color:var(--green);text-decoration:none}
+</style>
+</head><body>
+<div class="pitch-bg"></div>
+<div id="app"></div>
+<script src="data.js"></script>
+<script>
+'use strict';
+if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+
+/* ===== STATE ===== */
+let V='name',ac=0,cs={},dd={},sn=0,qa={},passed={},sp=0,sDir='l',userName='',tab='home';
+let streak={c:0,l:'',b:0},sBest=Infinity,deepA={},tLog=[],wrongT={},xp=0;
+let gS={},penScore=0,penRound=0,penDone=false,penResults=[];
+let offQ=[],offI=0,offC=0,offDone=false;
+let ddQ=[],ddI=0,ddW=[];
+let sqS=0,sqQ=[],sqI=0,sqC=0,sqD=false,sqE=0;
+let selectedCat=null;
+
+function ld(){try{const s=localStorage.getItem('fg2');if(s){const d=JSON.parse(s);cs=d.c||{};dd=d.d||{};qa=d.q||{};passed=d.p||{};streak=d.st||{c:0,l:'',b:0};sBest=d.sb||Infinity;deepA=d.da||{};tLog=d.tl||[];wrongT=d.wt||{};userName=d.un||'';xp=d.xp||0}}catch(e){}}
+function sv(){try{localStorage.setItem('fg2',JSON.stringify({c:cs,d:dd,q:qa,p:passed,st:streak,sb:sBest,da:deepA,tl:tLog,wt:wrongT,un:userName,xp}))}catch(e){}}
+function rst(){if(confirm('Reset ALL progress?')){localStorage.removeItem('fg2');location.reload()}}
+ld();if(userName)V='app';
+
+/* ===== HELPERS ===== */
+function ul(i){return i===0||!!passed[CH[i-1].id]}
+function qsc(cid){const c=CH.find(x=>x.id===cid);if(!c?.quiz)return{d:0,ok:0,t:0};let d=0,ok=0;c.quiz.forEach((_,i)=>{const k=cid+'-'+i;if(qa[k]!==undefined){d++;if(qa[k]===c.quiz[i].c)ok++}});return{d,ok,t:c.quiz.length}}
+function gp(){return CH.length?Math.round(Object.keys(passed).length/CH.length*100):0}
+function allP(){return CH.every(x=>!!passed[x.id])}
+function dTip(){const t=CH.map(c=>c.tip).filter(Boolean);return t[Math.floor(Date.now()/864e5)%t.length]}
+function getLevel(){return Math.floor(xp/200)+1}
+function getLevelXP(){return xp%200}
+function catProgress(cat){const chs=CH.filter(c=>c.category===cat);if(!chs.length)return 0;return Math.round(chs.filter(c=>passed[c.id]).length/chs.length*100)}
+
+function conf(){const cl=['#22c55e','#fbbf24','#3b82f6','#ef4444','#8b5cf6','#ec4899'];for(let i=0;i<40;i++){const e=document.createElement('div');e.className='conf';e.style.cssText=`left:${Math.random()*100}%;background:${cl[i%cl.length]};animation-delay:${Math.random()*.5}s;animation-duration:${2+Math.random()*1.5}s`;document.body.appendChild(e);setTimeout(()=>e.remove(),4000)}}
+function showXP(amount,x,y){xp+=amount;sv();const e=document.createElement('div');e.className='xp-pop';e.textContent=`+${amount} XP`;e.style.cssText=`left:${x||50}%;top:${y||40}%`;document.body.appendChild(e);setTimeout(()=>e.remove(),1200)}
+
+/* ===== ACTIONS ===== */
+function setName(){const el=document.getElementById('pname');if(el&&el.value.trim()){userName=el.value.trim();V='app';tab='home';sv();rn()}}
+function ts(id,i){if(!cs[id])cs[id]=[];const a=cs[id],x=a.indexOf(i);x===-1?a.push(i):a.splice(x,1);sv();rn(1)}
+function tdr(k){dd[k]=!dd[k];sv();rn(1)}
+function nv(i){if(i===ac||i<0||i>=CH.length||!ul(i))return;sDir=i>ac?'l':'r';ac=i;V='chapter';tab='';rn();document.querySelector('.scroll')?.scrollTo({top:0})}
+function aq2(ci,qi,ai){const k=ci+'-'+qi;if(qa[k]!==undefined)return;qa[k]=ai;const c=CH.find(x=>x.id===ci);const correct=ai===c.quiz[qi].c;if(correct)showXP(10);else wrongT[k]={correct:c.quiz[qi].a[c.quiz[qi].c],typed:false};
+const s=qsc(ci);if(s.d===s.t&&s.ok===s.t){passed[ci]=true;showXP(50);conf()}sv();rn(1)}
+function typeC(k){const inp=document.getElementById('ti-'+k);if(!inp)return;const v=inp.value.trim().toLowerCase(),t=(wrongT[k]?.correct||'').toLowerCase();if(v.length>=3&&t.includes(v)){wrongT[k].typed=true;sv();rn(1)}}
+function rq(ci){CH.find(x=>x.id===ci)?.quiz?.forEach((_,i)=>{delete qa[ci+'-'+i];delete wrongT[ci+'-'+i]});delete passed[ci];sv();rn(1)}
+function saveDeep(key){const el=document.getElementById('deep-'+key);if(el){deepA[key]=el.value;sv()}}
+function logTrain(){const t=new Date().toDateString();if(streak.l===t)return;streak.l===new Date(Date.now()-864e5).toDateString()?streak.c++:streak.c=1;streak.l=t;if(streak.c>streak.b)streak.b=streak.c;sv();rn()}
+function saveTLog(){const w=document.getElementById('log-w')?.value||'',f=document.getElementById('log-f')?.value||'',n=document.getElementById('log-n')?.value||'';if(!w&&!f&&!n)return;tLog.unshift({d:new Date().toLocaleDateString(),w,f,n});if(tLog.length>20)tLog.pop();sv();V='app';tab='home';rn()}
+
+/* ===== RENDER ENGINE ===== */
+function rn(keep){
+const ct=document.querySelector('.scroll');if(keep&&ct)sp=ct.scrollTop;
+const a=document.getElementById('app');
+a.innerHTML=V==='name'?rName():V==='chapter'?rChapter():rApp();
+if(keep){const c2=document.querySelector('.scroll');if(c2)c2.scrollTop=sp}}
+
+/* ===== NAME SCREEN ===== */
+function rName(){return`<div class="name-screen"><div class="logo">⚽</div><h1>Football Guide</h1><p>The complete interactive training guide. Learn the rules, master the skills, think like a pro.</p><input id="pname" placeholder="What's your name?" autofocus onkeydown="if(event.key==='Enter')setName()"><button onclick="setName()">Get Started →</button></div>`}
+
+/* ===== APP SHELL ===== */
+function rApp(){
+let h=`<div class="scroll"><div class="pad">`;
+if(tab==='home')h+=rHome();
+else if(tab==='learn')h+=rLearn();
+else if(tab==='games')h+=rGames();
+else if(tab==='stats')h+=rStats();
+else if(tab==='log')h+=rLog();
+h+=`</div></div>`;
+h+=`<div class="tabbar">`;
+const tabs=[['home','🏠','Home'],['learn','📖','Learn'],['games','🎮','Play'],['stats','📊','Stats'],['log','📝','Log']];
+tabs.forEach(([id,icon,label])=>{h+=`<button class="tab ${tab===id?'on':''}" onclick="tab='${id}';selectedCat=null;rn()"><span class="ti">${icon}</span><span class="tl">${label}</span></button>`});
+h+=`</div>`;return h}
+
+/* ===== HOME ===== */
+function rHome(){
+const lvl=getLevel(),lvlXP=getLevelXP(),today=new Date().toDateString(),trained=streak.l===today,tip=dTip();
+let h=`<div class="home-hero"><div class="greeting">Welcome back</div><div class="name">${userName} ⚽</div></div>`;
+// XP Bar
+h+=`<div class="xp-bar-wrap"><div class="xp-ring"><svg viewBox="0 0 52 52"><circle cx="26" cy="26" r="22" fill="none" stroke="var(--bg4)" stroke-width="4"/><circle cx="26" cy="26" r="22" fill="none" stroke="var(--green)" stroke-width="4" stroke-dasharray="${(lvlXP/200)*138.2} 138.2" stroke-linecap="round"/></svg><div class="lvl">${lvl}</div></div><div class="xp-info"><div class="level">Level ${lvl}</div><div class="xp-bar"><div class="xp-bar-fill" style="width:${lvlXP/200*100}%"></div></div><div class="xp-text">${lvlXP}/200 XP to next level</div></div></div>`;
+// Stats row
+h+=`<div class="stats-row"><div class="stat"><div class="sv">${Object.keys(passed).length}</div><div class="sl">Chapters</div></div><div class="stat"><div class="sv">${gp()}%</div><div class="sl">Complete</div></div><div class="stat"><div class="sv">${xp}</div><div class="sl">Total XP</div></div></div>`;
+// Streak
+h+=`<div class="streak-card"><div class="streak-fire">🔥</div><div class="streak-info"><div class="sn">${streak.c} day${streak.c!==1?'s':''}</div><div class="st">Best: ${streak.b} days</div></div><button class="streak-btn ${trained?'done':''}" onclick="${trained?'':'logTrain()'}">${trained?'✅ Done':'Trained today!'}</button></div>`;
+// Tip
+h+=`<div class="tip-card"><div class="tip-lb">💡 Daily Tip</div><div class="tip-tx">${tip}</div></div>`;
+// Categories
+h+=`<div class="section-title">📚 Categories</div><div class="cat-grid">`;
+CATS.forEach(cat=>{const prog=catProgress(cat),col=CAT_COLORS[cat],icon=CAT_ICONS[cat],count=CH.filter(c=>c.category===cat).length,done=CH.filter(c=>c.category===cat&&passed[c.id]).length;
+h+=`<div class="cat-card" onclick="tab='learn';selectedCat='${cat}';rn()"><div class="cat-icon">${icon}</div><div class="cat-name">${cat}</div><div class="cat-prog">${done}/${count} complete</div><div class="cat-bar"><div class="cat-bar-fill" style="width:${prog}%;background:${col}"></div></div></div>`});
+h+=`</div>`;
+// Games
+h+=`<div class="section-title">🎮 Quick Play</div><div class="game-grid">`;
+h+=`<div class="game-card" onclick="tab='games';rn()"><div class="em">🥅</div><div class="nm">Penalties</div></div>`;
+h+=`<div class="game-card" onclick="tab='games';rn()"><div class="em">📐</div><div class="nm">Offside</div></div>`;
+h+=`<div class="game-card" onclick="tab='games';rn()"><div class="em">⏱️</div><div class="nm">Speed Quiz</div></div>`;
+h+=`<div class="game-card" onclick="tab='games';rn()"><div class="em">🎯</div><div class="nm">Skill Match</div></div>`;
+h+=`</div>`;
+// Footer
+h+=`<div class="footer">Football Guide v2 — Learn the beautiful game<br><a href="https://www.theifab.com/laws" target="_blank">IFAB Laws</a></div>`;
+return h}
+
+/* ===== LEARN TAB ===== */
+function rLearn(){
+let h=`<div class="section-title">📖 ${selectedCat||'All Chapters'}</div>`;
+if(selectedCat){h+=`<button class="btn-secondary" onclick="selectedCat=null;rn()" style="margin-bottom:12px">← All Categories</button>`}
+const cats=selectedCat?[selectedCat]:CATS;
+cats.forEach(cat=>{
+const chs=CH.map((c,i)=>({...c,idx:i})).filter(c=>c.category===cat);
+if(!chs.length)return;
+h+=`<div class="cat-header"><span class="ci">${CAT_ICONS[cat]}</span><span class="ch">${cat}</span></div>`;
+chs.forEach(c=>{const u=ul(c.idx),p=passed[c.id],s=qsc(c.id),prog=s.t?Math.round(s.ok/s.t*100):0;
+h+=`<div class="ch-item ${u?'':'locked'}" onclick="nv(${c.idx})" style="animation-delay:${c.idx*0.02}s"><div class="ch-ring"><svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="16" fill="none" stroke="var(--bg4)" stroke-width="3"/><circle cx="20" cy="20" r="16" fill="none" stroke="${p?'var(--green)':c.color}" stroke-width="3" stroke-dasharray="${(prog/100)*100.5} 100.5" stroke-linecap="round"/></svg><div class="ch-icon">${u?c.icon:'🔒'}</div></div><div class="ch-info"><div class="ch-title">${c.title}</div><div class="ch-sub">${c.subtitle}${p?'':s.d>0?' · '+s.ok+'/'+s.t:''}</div></div>${p?'<div class="ch-pass">✅</div>':''}</div>`})});
+return h}
+
+/* ===== GAMES TAB ===== */
+function rGames(){
+let h=`<div class="section-title">🎮 Mini Games</div>`;
+h+=`<div class="game-grid"><div class="game-card" onclick="startPen();V='penalty';rn()"><div class="em">🥅</div><div class="nm">Penalty Shootout</div><div class="ds">Best of 5</div></div>`;
+h+=`<div class="game-card" onclick="startOff();V='offside';rn()"><div class="em">📐</div><div class="nm">Offside Challenge</div><div class="ds">Test your eye</div></div>`;
+h+=`<div class="game-card" onclick="startSQ();V='speed';rn()"><div class="em">⏱️</div><div class="nm">Speed Quiz</div><div class="ds">Best: ${sBest<Infinity?(sBest/1000).toFixed(1)+'s':'—'}</div></div>`;
+h+=`<div class="game-card" onclick="startMG();V='match';rn()"><div class="em">🎯</div><div class="nm">Skill Match</div><div class="ds">Match terms</div></div>`;
+h+=`<div class="game-card" onclick="startDaily();V='daily';rn()"><div class="em">🧠</div><div class="nm">Daily Drill</div><div class="ds">5 review Qs</div></div>`;
+h+=`</div>`;return h}
+
+/* ===== STATS ===== */
+function rStats(){
+const tQ=CH.reduce((s,c)=>s+(c.quiz?.length||0),0),aQ=Object.keys(qa).length,cQ=Object.entries(qa).filter(([k,v])=>{const[ci,qi]=k.split('-');return CH.find(x=>x.id===ci)?.quiz?.[qi]?.c===v}).length;
+let h=`<div class="section-title">📊 ${userName}'s Stats</div><div class="card">`;
+const rows=[['Level',getLevel()],['Total XP',xp],['Chapters',Object.keys(passed).length+'/'+CH.length],['Questions',aQ+'/'+tQ],['Accuracy',aQ?Math.round(cQ/aQ*100)+'%':'—'],['Streak','🔥 '+streak.c],['Best Streak','🏆 '+streak.b],['Speed Best',sBest<Infinity?(sBest/1000).toFixed(1)+'s':'—'],['Training Logs',tLog.length]];
+rows.forEach(([l,v])=>{h+=`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--bg3)"><span style="font-size:12px;font-weight:600;color:var(--text2)">${l}</span><span style="font-size:13px;font-weight:800">${v}</span></div>`});
+h+=`</div><button class="btn-secondary" onclick="rst()" style="margin-top:8px;width:100%">🔄 Reset All Progress</button>`;
+return h}
+
+/* ===== TRAINING LOG ===== */
+function rLog(){
+let h=`<div class="section-title">📝 Training Log</div>`;
+// Pre-training
+const triggers=CH.filter(c=>c.trigger&&passed[c.id]).map(c=>({icon:c.icon,trigger:c.trigger})).slice(-3);
+if(triggers.length){h+=`<div class="card"><div style="font-size:12px;font-weight:800;color:var(--gold);margin-bottom:8px">🚗 Before Training</div>`;
+triggers.forEach(t=>{h+=`<div style="font-size:11px;font-weight:600;color:var(--text2);line-height:1.5;margin-bottom:6px">${t.icon} ${t.trigger}</div>`});h+=`</div>`}
+// Log form
+h+=`<div class="card"><div style="font-size:12px;font-weight:800;color:var(--green);margin-bottom:8px">After Training</div>`;
+h+=`<div style="font-size:10px;font-weight:700;color:var(--green);margin-bottom:3px">✅ What went well?</div><textarea id="log-w" style="width:100%;background:var(--bg3);border:1px solid var(--card-border);border-radius:var(--r3);padding:8px;font-family:var(--font);font-size:11px;color:var(--text);min-height:40px;resize:vertical;outline:none;margin-bottom:8px" placeholder="Good passing, stayed onside..."></textarea>`;
+h+=`<div style="font-size:10px;font-weight:700;color:var(--red);margin-bottom:3px">❌ What to improve?</div><textarea id="log-f" style="width:100%;background:var(--bg3);border:1px solid var(--card-border);border-radius:var(--r3);padding:8px;font-family:var(--font);font-size:11px;color:var(--text);min-height:40px;resize:vertical;outline:none;margin-bottom:8px" placeholder="Need to scan more..."></textarea>`;
+h+=`<div style="font-size:10px;font-weight:700;color:var(--gold);margin-bottom:3px">🎯 Next time:</div><textarea id="log-n" style="width:100%;background:var(--bg3);border:1px solid var(--card-border);border-radius:var(--r3);padding:8px;font-family:var(--font);font-size:11px;color:var(--text);min-height:40px;resize:vertical;outline:none;margin-bottom:8px" placeholder="First touch, body open..."></textarea>`;
+h+=`<button class="btn-primary" onclick="saveTLog()">💾 Save Entry</button></div>`;
+if(tLog.length){h+=`<div class="section-title" style="margin-top:8px">📅 Previous</div>`;
+tLog.slice(0,5).forEach(e=>{h+=`<div class="card" style="font-size:10px;color:var(--text3);line-height:1.6"><b style="color:var(--text)">${e.d}</b><br>✅ ${e.w||'—'}<br>❌ ${e.f||'—'}<br>🎯 ${e.n||'—'}</div>`})}
+return h}
+
+/* ===== CHAPTER VIEW ===== */
+function rChapter(){
+const c=CH[ac],dn=cs[c.id]||[],s=qsc(c.id);
+let h=`<div class="scroll"><div class="pad sl-${sDir}">`;
+// Back button
+h+=`<button class="btn-secondary" onclick="V='app';tab='learn';rn()" style="margin-bottom:12px">← Back to Chapters</button>`;
+// Header
+h+=`<div class="ch-head" style="background:linear-gradient(135deg,${c.color},${c.color}cc)"><div class="bg">${c.icon}</div><div class="n">${c.category} · Chapter ${ac+1}/${CH.length}</div><div class="t">${c.icon} ${c.title}</div><div class="s">${c.subtitle}</div><div class="ch-xp">⭐ ${s.t*10+50} XP available</div></div>`;
+if(passed[c.id])h+=`<div class="card card-glow" style="text-align:center">✅ <span style="font-weight:800;color:var(--green)">CHAPTER PASSED</span></div>`;
+// Intro
+h+=`<div class="card intro-card" style="border-left-color:${c.color}">${c.intro}</div>`;
+// Body
+if(c.body?.length){h+=`<div class="card">`;c.body.forEach(l=>{h+=l===''?'<div style="height:6px"></div>':`<div class="body-text">${l}</div>`});h+=`</div>`}
+// Trigger
+if(c.trigger)h+=`<div class="trigger-card"><div class="lb">🎯 At Training Tonight</div><div class="tx">${c.trigger}</div></div>`;
+// Checklist
+h+=`<div class="card"><div class="section-title" style="color:${c.color}">✅ I Understand <span style="font-size:10px;background:${c.color}15;color:${c.color};padding:2px 8px;border-radius:12px;font-weight:700">${dn.length}/${c.steps.length}</span></div>`;
+c.steps.forEach((st,i)=>{const d=dn.includes(i);h+=`<div class="check-item" onclick="ts('${c.id}',${i})" style="background:${d?'rgba(34,197,94,.06)':'transparent'}"><div class="check-box" style="border-color:${d?'var(--green)':'var(--text3)'};background:${d?'var(--green)':'transparent'}">${d?'✓':''}</div><span class="check-txt${d?' dn':''}">${st}</span></div>`});
+h+=`</div>`;
+// Quiz
+if(c.quiz?.length){
+h+=`<div class="quiz-wrap" style="border-color:${c.color}"><div class="quiz-title" style="color:${c.color}">📝 Chapter Test</div><div class="quiz-sub">Score 10/10 to unlock next chapter · 10 XP per correct answer</div>`;
+// Progress dots
+h+=`<div class="quiz-progress">`;c.quiz.forEach((_,qi)=>{const k=c.id+'-'+qi,ans=qa[k];let cls='quiz-dot';if(ans!==undefined)cls+=ans===c.quiz[qi].c?' ok':' no';h+=`<div class="${cls}"></div>`});h+=`</div>`;
+if(passed[c.id]){h+=`<div class="quiz-result"><div class="score" style="color:var(--green)">🏆</div><div class="msg" style="color:var(--green)">PASSED! ${s.ok}/${s.t}</div><button class="btn-secondary" onclick="rq('${c.id}')">Retake</button></div>`}
+else{if(s.d===s.t&&s.ok<s.t)h+=`<div style="text-align:center;margin-bottom:12px"><div style="font-size:12px;font-weight:700;color:var(--red);margin-bottom:6px">${s.ok}/${s.t} — Need 10/10!</div><button class="btn-primary" style="background:var(--red);width:auto;display:inline-block;padding:8px 16px" onclick="rq('${c.id}')">🔄 Try Again</button></div>`;
+c.quiz.forEach((qq,qi)=>{const k=c.id+'-'+qi,ans=qa[k],wt=wrongT[k],isCorrect=ans===qq.c,letters=['A','B','C','D'];
+h+=`<div class="q-num">Question ${qi+1}</div><div class="q-text">${qq.q}</div>`;
+qq.a.forEach((aa,ai)=>{const isA=ans!==undefined,isC=ai===qq.c,isW=ai===ans&&!isC;
+h+=`<div class="q-btn ${isA?(isC?'ok':(isW?'no':'ds')):''}" onclick="aq2('${c.id}',${qi},${ai})"><span class="q-letter">${letters[ai]}</span><span>${aa}</span></div>`});
+// Feedback
+if(ans!==undefined){if(isCorrect)h+=`<div class="q-feedback ok">✅ Correct! +10 XP</div>`;
+else{h+=`<div class="q-feedback no">❌ The answer is: ${qq.a[qq.c]}</div>`;
+if(wt&&!wt.typed)h+=`<div class="typebox"><input id="ti-${k}" placeholder="Type the correct answer to continue..." autocomplete="off"><button onclick="typeC('${k}')">Submit</button></div>`}}
+})}h+=`</div>`}
+// Deep learning
+if(c.deepWhy?.length){h+=`<div class="deep-card"><div class="dtl">🤔 Explain WHY</div>`;c.deepWhy.forEach((w,i)=>{const k=c.id+'-why-'+i;h+=`<div class="dq">${w}</div><textarea id="deep-${k}" placeholder="Write your thinking...">${deepA[k]||''}</textarea><button class="deep-card .save-btn" style="border:none;background:var(--purple);color:#fff;border-radius:6px;padding:5px 12px;font-size:10px;font-weight:700;cursor:pointer;font-family:var(--font);margin:4px 0 8px" onclick="saveDeep('${k}')">💾 Save</button> ${deepA[k]?'<span style="font-size:9px;color:var(--green);font-weight:700">✓ Saved</span>':''}`});h+=`</div>`}
+if(c.deepScenario){const sk=c.id+'-scen';h+=`<div class="deep-card"><div class="dtl">🎬 Match Scenario</div><div class="dq">${c.deepScenario}</div><textarea id="deep-${sk}" placeholder="Describe your plan...">${deepA[sk]||''}</textarea><button style="border:none;background:var(--purple);color:#fff;border-radius:6px;padding:5px 12px;font-size:10px;font-weight:700;cursor:pointer;font-family:var(--font);margin:4px 0" onclick="saveDeep('${sk}')">💾 Save</button> ${deepA[sk]?'<span style="font-size:9px;color:var(--green);font-weight:700">✓ Saved</span>':''}</div>`}
+h+=`</div></div>`;
+// Chapter nav
+const nu=ac<CH.length-1&&ul(ac+1);
+h+=`<div class="ch-nav"><button class="nav-btn" ${ac===0?'disabled':''} onclick="sDir='r';nv(${ac-1})" style="background:${ac===0?'var(--bg4)':c.color}">‹</button><div class="nav-dots">`;
+CH.forEach((_,i)=>{const u=ul(i);h+=`<button class="nav-dot" onclick="${u?'nv('+i+')':''}" style="width:${i===ac?'14px':'4px'};background:${i===ac?c.color:u?c.color+'30':'var(--bg4)'}"></button>`});
+h+=`</div><button class="nav-btn" ${nu?'':'disabled'} onclick="sDir='l';nv(${ac+1})" style="background:${nu?c.color:'var(--bg4)'}">›</button></div>`;
+return h}
+
+/* ===== GAME SCREENS (rendered in app shell) ===== */
+// These use V= to switch views; when V='penalty' etc, rApp still renders but with game content
+
+// Override rApp for game views
+const _rApp=rApp;
+rApp=function(){
+if(V==='penalty')return rPenGame();
+if(V==='offside')return rOffGame();
+if(V==='speed')return rSpeedGame();
+if(V==='match')return rMatchGame();
+if(V==='daily')return rDailyGame();
+return _rApp()}
+
+function gameBack(){V='app';tab='games';rn()}
+function gameHeader(title,color){return`<div class="scroll"><div class="pad"><button class="btn-secondary" onclick="gameBack()" style="margin-bottom:12px">← Back</button><div class="section-title">${title}</div>`}
+
+// PENALTY
+function startPen(){penScore=0;penRound=0;penDone=false;penResults=[]}
+function takePen(zone){if(penDone)return;const kz=Math.floor(Math.random()*6),scored=zone!==kz;penResults.push({zone,kz,scored});penScore+=scored?1:0;penRound++;if(penRound>=5){penDone=true;if(penScore>=4)showXP(30)}rn()}
+function rPenGame(){const zl=['↖','⬆','↗','↙','⬇','↘'];
+let h=gameHeader('🥅 Penalty Shootout','var(--green)');
+if(penDone){h+=`<div style="text-align:center;animation:pop .4s"><div style="font-size:48px">${penScore>=4?'🏆':penScore>=3?'⚽':'😢'}</div><div style="font-size:22px;font-weight:900;color:var(--green);margin:8px 0">${penScore}/5</div><div style="font-size:12px;color:var(--text2);font-weight:600;margin-bottom:12px">${penScore===5?'PERFECT!':penScore>=4?'Brilliant!':penScore>=3?'Good effort':'Keep practising!'}</div>`;
+penResults.forEach((r,i)=>{h+=`<div style="font-size:11px;font-weight:600;color:var(--text3);margin:3px 0">${r.scored?'⚽':'❌'} Pen ${i+1}: ${r.scored?'GOAL!':'Saved'}</div>`});
+h+=`<button class="btn-primary" onclick="startPen();rn()" style="margin-top:12px">Shoot Again!</button></div>`}
+else{h+=`<div class="pen-field"><div class="pen-score">Pen ${penRound+1}/5 · ${penScore} goals</div><div class="pen-goal">`;
+const pos=[{t:'0',l:'0',w:'33%',h:'50%'},{t:'0',l:'33%',w:'34%',h:'50%'},{t:'0',l:'67%',w:'33%',h:'50%'},{t:'50%',l:'0',w:'33%',h:'50%'},{t:'50%',l:'33%',w:'34%',h:'50%'},{t:'50%',l:'67%',w:'33%',h:'50%'}];
+pos.forEach((p,i)=>{h+=`<div class="pen-zone" onclick="takePen(${i})" style="top:${p.t};left:${p.l};width:${p.w};height:${p.h}">${zl[i]}</div>`});
+h+=`</div><div class="pen-ball">⚽</div></div>`;
+h+=`<div style="text-align:center;font-size:11px;color:var(--text3);font-weight:600">Pick your corner — the keeper dives randomly!</div>`}
+h+=`</div></div>`;return h}
+
+// OFFSIDE
+const offScen=[
+{d:"Attacker behind both defenders when ball played",a:false,p:[{e:'⚽',x:30,y:55},{e:'🔵',x:55,y:35,l:'ATT'},{e:'🔴',x:65,y:30,l:'DEF'},{e:'🔴',x:70,y:50,l:'DEF'},{e:'🟡',x:90,y:40,l:'GK'}]},
+{d:"Attacker ahead of last defender at moment of pass",a:true,p:[{e:'⚽',x:30,y:50},{e:'🔵',x:80,y:38,l:'ATT'},{e:'🔴',x:70,y:32,l:'DEF'},{e:'🔴',x:65,y:52,l:'DEF'},{e:'🟡',x:90,y:40,l:'GK'}]},
+{d:"Attacker level with the last defender",a:false,p:[{e:'⚽',x:35,y:55},{e:'🔵',x:70,y:35,l:'ATT'},{e:'🔴',x:70,y:52,l:'DEF'},{e:'🔴',x:60,y:42,l:'DEF'},{e:'🟡',x:90,y:40,l:'GK'}]},
+{d:"Attacker in own half when ball is played",a:false,p:[{e:'⚽',x:40,y:52},{e:'🔵',x:42,y:35,l:'ATT'},{e:'🔴',x:65,y:38,l:'DEF'},{e:'🔴',x:68,y:50,l:'DEF'},{e:'🟡',x:90,y:40,l:'GK'}]},
+{d:"Attacker sprints past last defender to receive ball",a:true,p:[{e:'⚽',x:48,y:48},{e:'🔵',x:82,y:38,l:'ATT'},{e:'🔴',x:72,y:42,l:'DEF'},{e:'🔴',x:68,y:52,l:'DEF'},{e:'🟡',x:92,y:40,l:'GK'}]},
+{d:"Ball played backward to player behind the ball",a:false,p:[{e:'⚽',x:60,y:48},{e:'🔵',x:52,y:35,l:'ATT'},{e:'🔴',x:72,y:40,l:'DEF'},{e:'🔴',x:68,y:50,l:'DEF'},{e:'🟡',x:90,y:42,l:'GK'}]},
+];
+function startOff(){offQ=offScen.sort(()=>Math.random()-.5).slice(0,5);offI=0;offC=0;offDone=false}
+function offAns(a){if(offDone)return;if(a===offQ[offI].a){offC++;showXP(10)}offI++;if(offI>=offQ.length){offDone=true;if(offC===offQ.length)conf()}rn()}
+function rOffGame(){let h=gameHeader('📐 Offside Challenge','#f59e0b');
+if(offDone){h+=`<div style="text-align:center;animation:pop .4s"><div style="font-size:48px">${offC===offQ.length?'🏆':'📐'}</div><div style="font-size:22px;font-weight:900;color:#f59e0b;margin:8px 0">${offC}/${offQ.length}</div><div style="font-size:12px;color:var(--text2);font-weight:600">${offC===offQ.length?'Perfect — you know the rule!':'Review the offside chapter!'}</div><button class="btn-primary" style="background:#f59e0b;color:#000;margin-top:12px" onclick="startOff();rn()">Again!</button></div>`}
+else{const sc=offQ[offI];
+h+=`<div style="text-align:center;font-size:11px;font-weight:700;color:var(--text3);margin-bottom:6px">${offI+1}/${offQ.length} · Score: ${offC}</div>`;
+h+=`<div class="off-pitch"><div class="off-line" style="top:50%"></div><div style="position:absolute;top:46%;left:3%;font-size:8px;color:rgba(255,255,255,.4);font-weight:700">← Attack</div><div style="position:absolute;top:46%;right:3%;font-size:8px;color:rgba(255,255,255,.4);font-weight:700">Goal →</div>`;
+sc.p.forEach(p=>{const col=p.e==='🔵'?'#3b82f6':p.e==='🔴'?'#ef4444':p.e==='🟡'?'#fbbf24':'#fff';
+h+=`<div class="off-player" style="left:${p.x}%;top:${p.y}%"><div class="shirt" style="background:${col}">${p.e==='⚽'?'⚽':''}</div>${p.l||''}</div>`});
+h+=`</div>`;
+h+=`<div style="font-size:10px;color:var(--text3);font-weight:600;margin-bottom:6px;text-align:center">🔵 Attacker · 🔴 Defender · 🟡 Keeper · ⚽ Ball</div>`;
+h+=`<div style="font-weight:800;font-size:13px;color:var(--text);text-align:center;margin:8px 0">${sc.d}</div>`;
+h+=`<div class="off-btns"><button class="off-btn" onclick="offAns(true)" style="border-color:var(--red);color:var(--red);background:rgba(239,68,68,.06)">🚩 Offside</button><button class="off-btn" onclick="offAns(false)" style="border-color:var(--green);color:var(--green);background:rgba(34,197,94,.06)">✅ Onside</button></div>`}
+h+=`</div></div>`;return h}
+
+// SPEED QUIZ
+function startSQ(){sqQ=CH.flatMap(c=>(c.quiz||[]).map(q=>({...q}))).sort(()=>Math.random()-.5).slice(0,10);sqI=0;sqC=0;sqD=false;sqS=Date.now()}
+function sqA(ai){if(sqD)return;if(ai===sqQ[sqI].c)sqC++;sqI++;if(sqI>=10){sqD=true;sqE=Date.now();if(sqE-sqS<sBest&&sqC===10){sBest=sqE-sqS;sv()}if(sqC===10){conf();showXP(50)}}rn()}
+function rSpeedGame(){let h=gameHeader('⏱️ Speed Quiz','#ef4444');
+if(sqD){const t=sqE-sqS;h+=`<div style="text-align:center;animation:pop .4s"><div style="font-size:48px">${sqC===10?'🏆':'⏱️'}</div><div style="font-size:28px;font-weight:900;color:#ef4444;margin:6px 0">${(t/1000).toFixed(1)}s</div><div style="font-size:12px;font-weight:700;color:var(--text2)">${sqC}/10 correct${sqC===10&&t<=sBest?' · 🏆 NEW BEST!':''}</div><button class="btn-primary" style="background:#ef4444;margin-top:12px" onclick="startSQ();rn()">Again!</button></div>`}
+else{h+=`<div style="text-align:center;font-family:var(--font);font-weight:900;font-size:32px;color:#ef4444" id="sq-t">${Math.round((Date.now()-sqS)/1000)}s</div><div style="font-size:10px;text-align:center;color:var(--text3);font-weight:600;margin-bottom:10px">Best: ${sBest<Infinity?(sBest/1000).toFixed(1)+'s':'—'} · Q${sqI+1}/10</div>`;
+const q=sqQ[sqI],letters=['A','B','C','D'];h+=`<div class="q-text" style="text-align:center">${q.q}</div>`;
+q.a.forEach((a,i)=>{h+=`<div class="q-btn" onclick="sqA(${i})"><span class="q-letter">${letters[i]}</span><span>${a}</span></div>`})}
+h+=`</div></div>`;return h}
+setInterval(()=>{if(V==='speed'&&!sqD){const el=document.getElementById('sq-t');if(el)el.textContent=Math.round((Date.now()-sqS)/1000)+'s'}},250);
+
+// SKILL MATCH
+const mP=[{j:'Offside',e:'Behind last defender when ball played'},{j:'Jockeying',e:'Side-on, stay on feet, force weak side'},{j:'Wall Pass',e:'Give and go — pass, run, receive'},{j:'Through Ball',e:'Between defenders into space'},{j:'Scanning',e:'Check shoulders before receiving'},{j:'Cruyff Turn',e:'Chop behind standing leg'},{j:'Cushion Control',e:'Let foot give to absorb ball'},{j:'Counter-press',e:'Win ball back within 6 seconds'}];
+function startMG(){gS={p:mP.sort(()=>Math.random()-.5).slice(0,5),a:{},sel:null,shuf:null};gS.shuf=gS.p.map((_,i)=>i).sort(()=>Math.random()-.5)}
+function checkMG(ti){if(gS.sel===null)return;const ok=gS.sel===ti;gS.a[gS.sel]=ok;if(ok)showXP(10);gS.sel=null;if(Object.values(gS.a).filter(v=>v).length===gS.p.length)conf();rn()}
+function rMatchGame(){let h=gameHeader('🎯 Skill Match','var(--accent)');
+h+=`<div style="font-size:11px;text-align:center;color:var(--text3);font-weight:600;margin-bottom:10px">Tap a skill, then tap its meaning</div>`;
+gS.p.forEach((p,i)=>{const d=gS.a[i]!==undefined;h+=`<div class="q-btn ${gS.sel===i?'ok':''} ${d?(gS.a[i]?'ok':'no'):''}" onclick="${d?'':`gS.sel=${i};rn()`}" style="${d?'opacity:.4;pointer-events:none':''}"><span class="q-letter">${p.j.charAt(0)}</span><span>${p.j} ${d?(gS.a[i]?'✅':'❌'):''}</span></div>`});
+h+=`<div style="font-size:11px;font-weight:700;color:var(--text3);margin:10px 0 6px">Meanings:</div>`;
+gS.shuf.forEach(idx=>{const used=gS.a[idx]===true;h+=`<div class="q-btn ${used?'ds':''}" onclick="${gS.sel!==null&&!used?`checkMG(${idx})`:''}" style="font-size:11px;${used?'opacity:.25':''}"><span>${gS.p[idx].e}</span></div>`});
+const ok=Object.values(gS.a).filter(v=>v).length;
+if(ok===gS.p.length)h+=`<div style="text-align:center;margin:12px 0;animation:pop .4s"><div style="font-size:36px">🎉</div><button class="btn-primary" onclick="startMG();rn()" style="margin-top:8px">Again!</button></div>`;
+h+=`</div></div>`;return h}
+
+// DAILY DRILL
+function startDaily(){const pc=CH.filter(c=>passed[c.id]);if(!pc.length){alert('Pass some chapters first!');V='app';tab='games';return}ddQ=pc.flatMap(c=>(c.quiz||[]).map(q=>({...q}))).sort(()=>Math.random()-.5).slice(0,5);ddI=0;ddW=[]}
+function ddA(ai){if(ai!==ddQ[ddI].c)ddW.push(ddQ[ddI]);else showXP(10);ddI++;rn()}
+function rDailyGame(){let h=gameHeader('🧠 Daily Drill','var(--accent)');
+if(ddI>=ddQ.length){h+=`<div style="text-align:center;animation:pop .4s"><div style="font-size:48px">${ddW.length===0?'🏆':'🧠'}</div><div style="font-size:20px;font-weight:900;color:var(--green);margin:8px 0">${ddQ.length-ddW.length}/${ddQ.length}</div>`;
+if(ddW.length){h+=`<div style="font-size:11px;color:var(--text3);font-weight:600;margin-bottom:8px">Review these:</div>`;ddW.forEach(q=>{h+=`<div style="font-size:10px;font-weight:700;color:var(--red);margin:3px 0">• ${q.q} → ${q.a[q.c]}</div>`})}
+h+=`<button class="btn-primary" onclick="startDaily();rn()" style="margin-top:12px">Again!</button></div>`}
+else{const q=ddQ[ddI],letters=['A','B','C','D'];
+h+=`<div style="text-align:center;font-size:11px;color:var(--text3);font-weight:600;margin-bottom:10px">${ddI+1} of ${ddQ.length}</div>`;
+h+=`<div class="q-text" style="text-align:center">${q.q}</div>`;
+q.a.forEach((a,i)=>{h+=`<div class="q-btn" onclick="ddA(${i})"><span class="q-letter">${letters[i]}</span><span>${a}</span></div>`})}
+h+=`</div></div>`;return h}
+
+// Swipe for chapters
+let tx=0;
+document.addEventListener('touchstart',e=>{tx=e.touches[0].clientX},{passive:1});
+document.addEventListener('touchend',e=>{if(V!=='chapter')return;const d=e.changedTouches[0].clientX-tx;if(Math.abs(d)>60){const n=d<0?ac+1:ac-1;if(n>=0&&n<CH.length&&ul(n)){sDir=d<0?'l':'r';nv(n)}}},{passive:1});
+
+// Install prompt
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e});
+
+rn();
+</script>
+</body></html>
